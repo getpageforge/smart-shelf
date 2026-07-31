@@ -4,9 +4,12 @@ import { createClient } from "@supabase/supabase-js"
 // Ignora RLS e é usado para todas as escritas (ingestão de dispositivos
 // e server actions do painel). Nunca importar em componentes de cliente.
 export function createAdminClient() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return null
+  }
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
     {
       auth: {
         autoRefreshToken: false,

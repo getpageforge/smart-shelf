@@ -69,7 +69,7 @@ function ShelvesSection({
         <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-16 text-center">
           <p className="text-sm font-medium">Nenhuma cesta encontrada</p>
           <p className="text-sm text-muted-foreground">
-            Ajuste a pesquisa ou cadastre uma nova Smart Shelf.
+            Ajuste a pesquisa, cadastre uma nova Smart Shelf ou verifique a conexão com o banco de dados.
           </p>
         </div>
       )}

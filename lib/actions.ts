@@ -50,6 +50,7 @@ export async function createShelf(data: {
   }
 
   const supabase = createAdminClient()
+  if (!supabase) return { success: false, error: 'Banco de dados indisponível.' }
 
   // Check for duplicate token
   const { data: existing } = await supabase
@@ -93,6 +94,8 @@ export async function updateShelfName(
   }
 
   const supabase = createAdminClient()
+  if (!supabase) return { success: false, error: 'Banco de dados indisponível.' }
+
   const { error } = await supabase
     .from('smart_shelves')
     .update({ name: name.trim() })
@@ -114,6 +117,7 @@ export async function deleteShelf(
   }
 
   const supabase = createAdminClient()
+  if (!supabase) return { success: false, error: 'Banco de dados indisponível.' }
 
   // Cascading deletes are handled by FK ON DELETE CASCADE
   const { error } = await supabase
@@ -135,8 +139,10 @@ export async function deleteShelf(
 
 export async function fetchShelves(): Promise<ShelfWithLatest[]> {
   const supabase = createAdminClient()
+  if (!supabase) return []
 
-  const { data: shelves, error } = await supabase
+  try {
+    const { data: shelves, error } = await supabase
     .from('smart_shelves')
     .select('*')
     .order('created_at', { ascending: true })
@@ -168,6 +174,10 @@ export async function fetchShelves(): Promise<ShelfWithLatest[]> {
   )
 
   return enriched
+  } catch (err) {
+    console.error('fetchShelves exception:', err)
+    return []
+  }
 }
 
 export async function fetchShelfByToken(
@@ -179,8 +189,10 @@ export async function fetchShelfByToken(
   alerts: ShelfAlert[]
 }> {
   const supabase = createAdminClient()
+  if (!supabase) return { shelf: null, readings: [], events: [], alerts: [] }
 
-  const { data: shelf } = await supabase
+  try {
+    const { data: shelf } = await supabase
     .from('smart_shelves')
     .select('*')
     .eq('token', token)
@@ -225,14 +237,20 @@ export async function fetchShelfByToken(
     events: eventsRes.data ?? [],
     alerts: alertsRes.data ?? [],
   }
+  } catch (err) {
+    console.error('fetchShelfByToken exception:', err)
+    return { shelf: null, readings: [], events: [], alerts: [] }
+  }
 }
 
 export async function fetchAlerts(
   shelfToken?: string,
 ): Promise<ShelfAlert[]> {
   const supabase = createAdminClient()
+  if (!supabase) return []
 
-  let query = supabase
+  try {
+    let query = supabase
     .from('alerts')
     .select('*')
     .order('created_at', { ascending: false })
@@ -249,13 +267,19 @@ export async function fetchAlerts(
   }
 
   return data ?? []
+  } catch (err) {
+    console.error('fetchAlerts exception:', err)
+    return []
+  }
 }
 
 export async function fetchHistory(): Promise<HistoryEntry[]> {
   const supabase = createAdminClient()
+  if (!supabase) return []
 
-  // Fetch events
-  const { data: events } = await supabase
+  try {
+    // Fetch events
+    const { data: events } = await supabase
     .from('events')
     .select('id, shelf_token, type, quantity, created_at')
     .order('created_at', { ascending: false })
@@ -316,14 +340,20 @@ export async function fetchHistory(): Promise<HistoryEntry[]> {
   )
 
   return history.slice(0, 100)
+  } catch (err) {
+    console.error('fetchHistory exception:', err)
+    return []
+  }
 }
 
 export async function resolveAlert(
   alertId: string,
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = createAdminClient()
+  if (!supabase) return { success: false, error: 'Banco de dados indisponível.' }
 
-  const { error } = await supabase
+  try {
+    const { error } = await supabase
     .from('alerts')
     .update({ resolved: true })
     .eq('id', alertId)
@@ -334,6 +364,10 @@ export async function resolveAlert(
   }
 
   return { success: true }
+  } catch (err) {
+    console.error('resolveAlert exception:', err)
+    return { success: false, error: 'Erro ao resolver alerta.' }
+  }
 }
 
 export async function validateTokenAvailability(
@@ -344,19 +378,32 @@ export async function validateTokenAvailability(
   }
 
   const supabase = createAdminClient()
-  const { data } = await supabase
+  if (!supabase) return { valid: false, available: false }
+
+  try {
+    const { data } = await supabase
     .from('smart_shelves')
     .select('id')
     .eq('token', token)
     .maybeSingle()
 
   return { valid: true, available: !data }
+  } catch (err) {
+    console.error('validateTokenAvailability exception:', err)
+    return { valid: false, available: false }
+  }
 }
 
 export async function fetchStats() {
   const supabase = createAdminClient()
+  if (!supabase) {
+    return {
+      byCompartment: [], byDay: [], temperature: [], alertsByKind: [], totalDevolucoes: 0, totalRecolhimentos: 0, avgTemp: '--', hasData: false
+    }
+  }
   
-  const sevenDaysAgo = new Date()
+  try {
+    const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
   const since = sevenDaysAgo.toISOString()
 
@@ -470,5 +517,11 @@ export async function fetchStats() {
     totalRecolhimentos,
     avgTemp,
     hasData: events.length > 0 || readings.length > 0 || alerts.length > 0
+  }
+  } catch (err) {
+    console.error('fetchStats exception:', err)
+    return {
+      byCompartment: [], byDay: [], temperature: [], alertsByKind: [], totalDevolucoes: 0, totalRecolhimentos: 0, avgTemp: '--', hasData: false
+    }
   }
 }

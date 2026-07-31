@@ -20,6 +20,8 @@ export function useRealtimeTable(
 
   useEffect(() => {
     const supabase = createClient()
+    if (!supabase) return
+
     const channelName = filter ? `${table}:${filter}` : `${table}:all`
 
     const channel: RealtimeChannel = supabase
