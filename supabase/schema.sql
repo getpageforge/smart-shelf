@@ -1,6 +1,7 @@
 -- ============================================================================
 -- Smart Shelf — Database Schema
 -- Run this SQL in the Supabase SQL Editor (Dashboard → SQL Editor)
+-- Idempotent: safe to run multiple times
 -- ============================================================================
 
 -- Enable UUID generation
@@ -21,7 +22,7 @@ CREATE TABLE IF NOT EXISTS smart_shelves (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_shelves_token ON smart_shelves (token);
+CREATE INDEX IF NOT EXISTS idx_shelves_token    ON smart_shelves (token);
 CREATE INDEX IF NOT EXISTS idx_shelves_category ON smart_shelves (category);
 
 -- ============================================================================
@@ -78,29 +79,94 @@ ALTER TABLE sensor_readings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE alerts          ENABLE ROW LEVEL SECURITY;
 
+-- ----------------------------------------------------------------------------
+-- Drop ALL existing policies on each table (handles legacy names with spaces
+-- or any other naming variant) before recreating them cleanly.
+-- This prevents error 42710 (duplicate_object) on re-runs.
+-- ----------------------------------------------------------------------------
+DO $$
+DECLARE
+  pol RECORD;
+BEGIN
+  FOR pol IN
+    SELECT policyname, tablename
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('smart_shelves', 'sensor_readings', 'events', 'alerts')
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
+  END LOOP;
+END
+$$;
+
 -- smart_shelves: anon can read, service_role can do everything
-CREATE POLICY "anon_read_shelves"   ON smart_shelves FOR SELECT TO anon USING (true);
-CREATE POLICY "service_all_shelves" ON smart_shelves FOR ALL    TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "anon_read_shelves"
+  ON smart_shelves FOR SELECT TO anon USING (true);
 
--- sensor_readings: anon can read, service_role can insert
-CREATE POLICY "anon_read_readings"     ON sensor_readings FOR SELECT TO anon USING (true);
-CREATE POLICY "service_insert_readings" ON sensor_readings FOR INSERT TO service_role WITH CHECK (true);
-CREATE POLICY "service_all_readings"   ON sensor_readings FOR ALL    TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "service_all_shelves"
+  ON smart_shelves FOR ALL TO service_role USING (true) WITH CHECK (true);
 
--- events: anon can read, service_role can insert
-CREATE POLICY "anon_read_events"     ON events FOR SELECT TO anon USING (true);
-CREATE POLICY "service_insert_events" ON events FOR INSERT TO service_role WITH CHECK (true);
-CREATE POLICY "service_all_events"   ON events FOR ALL    TO service_role USING (true) WITH CHECK (true);
+-- sensor_readings: anon can read, service_role can insert / manage
+CREATE POLICY "anon_read_readings"
+  ON sensor_readings FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_insert_readings"
+  ON sensor_readings FOR INSERT TO service_role WITH CHECK (true);
+
+CREATE POLICY "service_all_readings"
+  ON sensor_readings FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+-- events: anon can read, service_role can insert / manage
+CREATE POLICY "anon_read_events"
+  ON events FOR SELECT TO anon USING (true);
+
+CREATE POLICY "service_insert_events"
+  ON events FOR INSERT TO service_role WITH CHECK (true);
+
+CREATE POLICY "service_all_events"
+  ON events FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- alerts: anon can read and update (resolve), service_role can do everything
-CREATE POLICY "anon_read_alerts"    ON alerts FOR SELECT TO anon USING (true);
-CREATE POLICY "anon_update_alerts"  ON alerts FOR UPDATE TO anon USING (true) WITH CHECK (true);
-CREATE POLICY "service_all_alerts"  ON alerts FOR ALL    TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "anon_read_alerts"
+  ON alerts FOR SELECT TO anon USING (true);
+
+CREATE POLICY "anon_update_alerts"
+  ON alerts FOR UPDATE TO anon USING (true) WITH CHECK (true);
+
+CREATE POLICY "service_all_alerts"
+  ON alerts FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 -- ============================================================================
--- Enable Realtime for all tables
+-- Enable Realtime for all tables (idempotent via DO block)
 -- ============================================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE smart_shelves;
-ALTER PUBLICATION supabase_realtime ADD TABLE sensor_readings;
-ALTER PUBLICATION supabase_realtime ADD TABLE events;
-ALTER PUBLICATION supabase_realtime ADD TABLE alerts;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'smart_shelves'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE smart_shelves;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'sensor_readings'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE sensor_readings;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'events'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE events;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'alerts'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE alerts;
+  END IF;
+END
+$$;
