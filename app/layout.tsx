@@ -2,6 +2,8 @@ import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
+import { UserProfileProvider } from '@/lib/contexts/user-profile-context'
+import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'
 
 const geistSans = Geist({
   subsets: ['latin'],
@@ -36,7 +38,10 @@ export default function RootLayout({
       className={`dark bg-background ${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="font-sans antialiased">
-        {children}
+        <UserProfileProvider>
+          <OnboardingWizard />
+          {children}
+        </UserProfileProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

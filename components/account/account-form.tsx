@@ -1,6 +1,7 @@
 'use client'
 
-import { KeyRound, LogOut, UserCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { KeyRound, LogOut, UserCircle, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -13,14 +14,74 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/field'
 import { Badge } from '@/components/ui/badge'
 import { Avatar } from '@/components/shared/avatar'
+import { useUserProfile } from '@/lib/contexts/user-profile-context'
+import { saveUserProfile } from '@/lib/actions'
+
+type SaveStatus = 'idle' | 'saving' | 'success' | 'error'
 
 function AccountForm() {
-  const handleSubmit = (e: React.FormEvent) => {
+  const { profile, profileId, loading, setProfile } = useUserProfile()
+
+  const [name, setName] = useState('')
+  const [role, setRole] = useState('')
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  // Populate fields when profile loads
+  useEffect(() => {
+    if (profile) {
+      setName(profile.name ?? '')
+      setRole(profile.role ?? '')
+      setEmail(profile.email ?? '')
+      setPhone(profile.phone ?? '')
+    }
+  }, [profile])
+
+  const previewName = name.trim() || profile?.name || 'Usuário'
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    // Integração futura: persistir no Supabase Auth.
+    if (!name.trim()) return
+    setSaveStatus('saving')
+    setErrorMsg('')
+
+    const result = await saveUserProfile({
+      id: profileId,
+      name,
+      role,
+      email,
+      phone,
+    })
+
+    if (result.success && result.data) {
+      setProfile(result.data)
+      setSaveStatus('success')
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    } else {
+      setErrorMsg(result.error ?? 'Erro ao salvar.')
+      setSaveStatus('error')
+    }
   }
 
-  const employeeName = "Ana Ribeiro"
+  function handleCancel() {
+    if (profile) {
+      setName(profile.name ?? '')
+      setRole(profile.role ?? '')
+      setEmail(profile.email ?? '')
+      setPhone(profile.phone ?? '')
+    }
+    setSaveStatus('idle')
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -34,31 +95,59 @@ function AccountForm() {
         </CardHeader>
         <CardContent className="flex flex-col gap-5">
           <div className="flex items-center gap-4">
-            <Avatar name={employeeName} size="lg" />
-            <div className="flex flex-col gap-2">
+            <Avatar name={previewName} size="lg" />
+            <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{employeeName}</span>
-                <Badge variant="primary">Supervisora</Badge>
+                <span className="text-sm font-medium">{previewName}</span>
+                {role.trim() && (
+                  <Badge variant="primary">{role}</Badge>
+                )}
               </div>
+              <span className="text-xs text-muted-foreground">
+                O avatar atualiza conforme você digita o nome.
+              </span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="name">Nome completo</Label>
-              <Input id="name" defaultValue={employeeName} />
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Seu nome completo"
+                required
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="role">Cargo</Label>
-              <Input id="role" defaultValue="Supervisora de loja" />
+              <Input
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                placeholder="Ex: Supervisora de loja"
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="email">E-mail</Label>
-              <Input id="email" type="email" defaultValue="ana.ribeiro@central.com" />
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Ex: ana@empresa.com"
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="phone">Telefone</Label>
-              <Input id="phone" type="tel" defaultValue="(11) 98888-0000" />
+              <Input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Ex: (11) 98888-0000"
+              />
             </div>
           </div>
         </CardContent>
@@ -84,6 +173,20 @@ function AccountForm() {
         </CardContent>
       </Card>
 
+      {/* Status feedback */}
+      {saveStatus === 'success' && (
+        <div className="flex items-center gap-2 rounded-lg bg-green-500/10 px-4 py-3 text-sm text-green-400">
+          <CheckCircle2 className="size-4 shrink-0" />
+          Perfil salvo com sucesso!
+        </div>
+      )}
+      {saveStatus === 'error' && (
+        <div className="flex items-center gap-2 rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <AlertCircle className="size-4 shrink-0" />
+          {errorMsg}
+        </div>
+      )}
+
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Button
           type="button"
@@ -94,10 +197,19 @@ function AccountForm() {
           Sair da conta
         </Button>
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="outline">
+          <Button type="button" variant="outline" onClick={handleCancel}>
             Cancelar
           </Button>
-          <Button type="submit">Salvar alterações</Button>
+          <Button type="submit" disabled={saveStatus === 'saving' || !name.trim()}>
+            {saveStatus === 'saving' ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Salvando…
+              </>
+            ) : (
+              'Salvar alterações'
+            )}
+          </Button>
         </div>
       </div>
     </form>

@@ -9,6 +9,7 @@ import { Notifications } from './notifications'
 import { Avatar } from '@/components/shared/avatar'
 import { useShelves } from '@/lib/hooks/use-shelves'
 import { CATEGORY_META } from '@/lib/shelf-utils'
+import { useUserProfile } from '@/lib/contexts/user-profile-context'
 
 export interface Breadcrumb {
   label: string
@@ -24,6 +25,7 @@ interface HeaderProps {
 function Header({ title, breadcrumbs = [], onToggleSidebar }: HeaderProps) {
   const router = useRouter()
   const { shelves } = useShelves()
+  const { profile } = useUserProfile()
   const [query, setQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
@@ -35,7 +37,7 @@ function Header({ title, breadcrumbs = [], onToggleSidebar }: HeaderProps) {
     month: 'short',
   })
   
-  const employeeName = "Ana Ribeiro"
+  const employeeName = profile?.name ?? 'Usuário'
 
   // Handle click outside to close search results
   useEffect(() => {

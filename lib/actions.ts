@@ -525,3 +525,82 @@ export async function fetchStats() {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// User Profile (onboarding + conta)
+// ---------------------------------------------------------------------------
+
+export interface UserProfile {
+  id: string
+  name: string
+  role: string
+  email: string
+  phone: string
+  created_at: string
+}
+
+export async function getProfile(
+  id: string,
+): Promise<UserProfile | null> {
+  if (!id) return null
+  const supabase = createAdminClient()
+  if (!supabase) return null
+
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (error) {
+      console.error('getProfile error:', error)
+      return null
+    }
+    return data ?? null
+  } catch (err) {
+    console.error('getProfile exception:', err)
+    return null
+  }
+}
+
+export async function saveUserProfile(profile: {
+  id: string
+  name: string
+  role: string
+  email: string
+  phone: string
+}): Promise<{ success: boolean; error?: string; data?: UserProfile }> {
+  if (!profile.id) return { success: false, error: 'ID inválido.' }
+  if (!profile.name.trim()) return { success: false, error: 'Nome é obrigatório.' }
+
+  const supabase = createAdminClient()
+  if (!supabase) return { success: false, error: 'Banco de dados indisponível.' }
+
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .upsert(
+        {
+          id: profile.id,
+          name: profile.name.trim(),
+          role: profile.role.trim(),
+          email: profile.email.trim(),
+          phone: profile.phone.trim(),
+        },
+        { onConflict: 'id' },
+      )
+      .select()
+      .single()
+
+    if (error) {
+      console.error('saveUserProfile error:', error)
+      return { success: false, error: 'Erro ao salvar perfil.' }
+    }
+
+    return { success: true, data }
+  } catch (err) {
+    console.error('saveUserProfile exception:', err)
+    return { success: false, error: 'Erro ao salvar perfil.' }
+  }
+}
