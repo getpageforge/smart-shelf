@@ -539,11 +539,36 @@ export interface UserProfile {
   created_at: string
 }
 
+/**
+ * Cria um cliente Supabase para operações na tabela user_profiles.
+ * Usa o admin client quando disponível (tem service role key).
+ * Caso contrário, usa o cliente anônimo — a tabela user_profiles
+ * tem política RLS aberta para anon (anon_all_profiles), então
+ * não é necessário service role para leitura/escrita de perfis.
+ */
+function createProfileClient() {
+  // Prefere o admin client (service role ignora RLS e é mais robusto)
+  const admin = createAdminClient()
+  if (admin) return admin
+
+  // Fallback: cliente anônimo direto usando apenas as variáveis NEXT_PUBLIC_*
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  if (!url || !anonKey) return null
+
+  // Importação dinâmica inline — createClient de @supabase/supabase-js
+  // já está disponível no bundle do servidor pois admin.ts o usa
+  const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
+  return createSupabaseClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
 export async function getProfile(
   id: string,
 ): Promise<UserProfile | null> {
   if (!id) return null
-  const supabase = createAdminClient()
+  const supabase = createProfileClient()
   if (!supabase) return null
 
   try {
@@ -574,8 +599,13 @@ export async function saveUserProfile(profile: {
   if (!profile.id) return { success: false, error: 'ID inválido.' }
   if (!profile.name.trim()) return { success: false, error: 'Nome é obrigatório.' }
 
-  const supabase = createAdminClient()
-  if (!supabase) return { success: false, error: 'Banco de dados indisponível.' }
+  const supabase = createProfileClient()
+  if (!supabase) {
+    return {
+      success: false,
+      error: 'Variáveis de ambiente do Supabase não configuradas. Verifique NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_ANON_KEY.',
+    }
+  }
 
   try {
     const { data, error } = await supabase
@@ -595,7 +625,7 @@ export async function saveUserProfile(profile: {
 
     if (error) {
       console.error('saveUserProfile error:', error)
-      return { success: false, error: 'Erro ao salvar perfil.' }
+      return { success: false, error: `Erro ao salvar perfil: ${error.message}` }
     }
 
     return { success: true, data }
