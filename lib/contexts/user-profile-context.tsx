@@ -7,8 +7,8 @@ import {
   useEffect,
   useState,
 } from 'react'
-import { getProfile } from '@/lib/actions'
-import type { UserProfile } from '@/lib/actions'
+import { getProfile } from '@/lib/queries'
+import type { UserProfile } from '@/lib/queries'
 
 // ---------------------------------------------------------------------------
 // Constants

@@ -7,7 +7,7 @@ import {
   fetchAlerts,
   fetchHistory,
   fetchStats,
-} from '@/lib/actions'
+} from '@/lib/queries'
 import { useRealtimeTable } from '@/lib/hooks/use-realtime'
 import type {
   HistoryEntry,
