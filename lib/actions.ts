@@ -1,6 +1,7 @@
 'use server'
 
 import { createAdminClient } from '@/lib/supabase/admin'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { isValidToken } from '@/lib/shelf-utils'
 import type {
   ShelfAlert,
@@ -556,9 +557,6 @@ function createProfileClient() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
   if (!url || !anonKey) return null
 
-  // Importação dinâmica inline — createClient de @supabase/supabase-js
-  // já está disponível no bundle do servidor pois admin.ts o usa
-  const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
   return createSupabaseClient(url, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })

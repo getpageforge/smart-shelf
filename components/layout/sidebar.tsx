@@ -7,6 +7,7 @@ import { NAV_ITEMS } from '@/lib/nav'
 import { cn } from '@/lib/utils'
 import { Logo } from './logo'
 import { Avatar } from '@/components/shared/avatar'
+import { useUserProfile } from '@/lib/contexts/user-profile-context'
 
 interface SidebarProps {
   open: boolean
@@ -20,7 +21,10 @@ function isActive(pathname: string, href: string) {
 
 function Sidebar({ open, onNavigate }: SidebarProps) {
   const pathname = usePathname()
-  const employeeName = "Ana Ribeiro"
+  const { profile } = useUserProfile()
+  
+  const previewName = profile?.name ?? 'Usuário'
+  const previewRole = profile?.role ?? 'Administrador'
 
   return (
     <aside
@@ -33,12 +37,12 @@ function Sidebar({ open, onNavigate }: SidebarProps) {
       </div>
 
       <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
-        <Avatar name={employeeName} size="sm" />
+        <Avatar name={previewName} size="sm" />
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-medium text-sidebar-foreground">
-            {employeeName}
+            {previewName}
           </span>
-          <span className="text-xs text-muted-foreground">Supervisora de loja</span>
+          <span className="text-xs text-muted-foreground">{previewRole}</span>
         </div>
       </div>
 
