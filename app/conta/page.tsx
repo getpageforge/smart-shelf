@@ -1,3 +1,5 @@
+'use client'
+
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 import { AccountForm } from '@/components/account/account-form'
 

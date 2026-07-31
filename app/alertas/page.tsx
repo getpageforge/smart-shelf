@@ -1,3 +1,5 @@
+'use client'
+
 import { AlertsView } from '@/components/alerts/alerts-view'
 import { DashboardShell } from '@/components/layout/dashboard-shell'
 

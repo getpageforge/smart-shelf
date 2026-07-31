@@ -21,10 +21,10 @@ function isActive(pathname: string, href: string) {
 
 function Sidebar({ open, onNavigate }: SidebarProps) {
   const pathname = usePathname()
-  const { profile } = useUserProfile()
+  const { profile, loading } = useUserProfile()
   
-  const previewName = profile?.name ?? 'Usuário'
-  const previewRole = profile?.role ?? 'Administrador'
+  const previewName = profile?.name ?? ''
+  const previewRole = profile?.role ?? ''
 
   return (
     <aside
@@ -37,14 +37,36 @@ function Sidebar({ open, onNavigate }: SidebarProps) {
       </div>
 
       <div className="flex items-center gap-3 border-b border-sidebar-border px-5 py-4">
-        <Avatar name={previewName} size="sm" />
-        <div className="flex flex-col leading-tight">
-          <span className="text-sm font-medium text-sidebar-foreground">
-            {previewName}
-          </span>
-          <span className="text-xs text-muted-foreground">{previewRole}</span>
-        </div>
+        {loading ? (
+          <div className="flex items-center gap-3 w-full">
+            <div className="size-8 shrink-0 rounded-full bg-sidebar-accent animate-pulse" />
+            <div className="flex flex-col gap-1.5 flex-1">
+              <div className="h-3 w-24 rounded bg-sidebar-accent animate-pulse" />
+              <div className="h-2.5 w-16 rounded bg-sidebar-accent animate-pulse" />
+            </div>
+          </div>
+        ) : previewName ? (
+          <>
+            <Avatar name={previewName} size="sm" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-sm font-medium text-sidebar-foreground">
+                {previewName}
+              </span>
+              {previewRole && (
+                <span className="text-xs text-muted-foreground">{previewRole}</span>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-muted-foreground">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+            </div>
+            <span className="text-sm text-muted-foreground">Sem perfil</span>
+          </div>
+        )}
       </div>
+
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3 no-scrollbar">
         <p className="px-3 pb-2 pt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
