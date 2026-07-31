@@ -531,14 +531,7 @@ export async function fetchStats() {
 // User Profile (onboarding + conta)
 // ---------------------------------------------------------------------------
 
-export interface UserProfile {
-  id: string
-  name: string
-  role: string
-  email: string
-  phone: string
-  created_at: string
-}
+
 
 /**
  * Cria um cliente Supabase para operações na tabela user_profiles.
@@ -564,7 +557,7 @@ function createProfileClient() {
 
 export async function getProfile(
   id: string,
-): Promise<UserProfile | null> {
+): Promise<any | null> {
   if (!id) return null
   const supabase = createProfileClient()
   if (!supabase) return null
@@ -593,7 +586,7 @@ export async function saveUserProfile(profile: {
   role: string
   email: string
   phone: string
-}): Promise<{ success: boolean; error?: string; data?: UserProfile }> {
+}): Promise<{ success: boolean; error?: string; data?: any }> {
   if (!profile.id) return { success: false, error: 'ID inválido.' }
   if (!profile.name.trim()) return { success: false, error: 'Nome é obrigatório.' }
 
