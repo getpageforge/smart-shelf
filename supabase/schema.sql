@@ -92,7 +92,7 @@ BEGIN
     SELECT policyname, tablename
     FROM pg_policies
     WHERE schemaname = 'public'
-      AND tablename IN ('smart_shelves', 'sensor_readings', 'events', 'alerts')
+      AND tablename IN ('smart_shelves', 'sensor_readings', 'events', 'alerts', 'user_profiles')
   LOOP
     EXECUTE format('DROP POLICY IF EXISTS %I ON %I', pol.policyname, pol.tablename);
   END LOOP;
@@ -167,6 +167,38 @@ BEGIN
     WHERE pubname = 'supabase_realtime' AND tablename = 'alerts'
   ) THEN
     ALTER PUBLICATION supabase_realtime ADD TABLE alerts;
+  END IF;
+END
+$$;
+
+-- ============================================================================
+-- 5. user_profiles
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS user_profiles (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name       TEXT NOT NULL,
+  role       TEXT NOT NULL,
+  email      TEXT NOT NULL,
+  phone      TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+-- Policies for user_profiles are dropped above in the unified DO block.
+CREATE POLICY "anon_all_profiles"
+  ON user_profiles FOR ALL TO anon USING (true) WITH CHECK (true);
+
+CREATE POLICY "service_all_profiles"
+  ON user_profiles FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND tablename = 'user_profiles'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE user_profiles;
   END IF;
 END
 $$;
