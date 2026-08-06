@@ -11,6 +11,7 @@ import type {
   SensorReading,
   SmartShelf,
   HistoryEntry,
+  UserProfile,
 } from '@/lib/types'
 
 // ---------------------------------------------------------------------------

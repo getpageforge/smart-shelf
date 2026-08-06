@@ -1,6 +1,8 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
+import { UserProvider } from '@/lib/contexts/user-context'
+import { OnboardingModal } from '@/components/onboarding/onboarding-modal'
 import './globals.css'
 import { UserProfileProvider } from '@/lib/contexts/user-profile-context'
 import { OnboardingWizard } from '@/components/onboarding/onboarding-wizard'

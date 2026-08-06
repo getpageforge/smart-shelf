@@ -89,6 +89,13 @@ export async function POST(request: Request) {
 
   const supabase = createAdminClient()
 
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'Serviço de banco de dados indisponível.' },
+      { status: 503 },
+    )
+  }
+
   // 3. Look up token in smart_shelves
   const { data: shelf, error: lookupError } = await supabase
     .from('smart_shelves')
